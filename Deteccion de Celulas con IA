@@ -1,0 +1,682 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/alebreunig5/Adhesion-YOLO/blob/main/Deteccion%20de%20Celulas%20con%20IA\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "ubp_6JmNxxB5",
+      "metadata": {
+        "id": "ubp_6JmNxxB5"
+      },
+      "source": [
+        "# Proyecto de Detección de Células con Modelos Preentrenados en YOLO\n",
+        "\n",
+        "## Introducción al uso de este programa\n",
+        "\n",
+        "JupyterLab tiene una interfaz de usuario intuitiva que se divide en paneles. En el panel izquierdo, encontrarás el explorador de archivos y los cuadernos de Jupyter. En el panel principal, puedes trabajar en tus cuadernos, editores de texto, terminales, y otros elementos."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "7mGmQbAO5pQb",
+      "metadata": {
+        "id": "7mGmQbAO5pQb"
+      },
+      "source": [
+        "## 1. Carga de módulos y librerías\n",
+        "\n",
+        "Instala `ultralytics` y sus [dependencias](https://github.com/ultralytics/ultralytics/blob/main/pyproject.toml) utilizando Pip, y verifica el software y el hardware. Probablemente ya esté hecho."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "wbvMlHd_QwMG",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "execution": {
+          "iopub.execute_input": "2024-08-22T12:25:38.813925Z",
+          "iopub.status.busy": "2024-08-22T12:25:38.813925Z",
+          "iopub.status.idle": "2024-08-22T12:25:46.752904Z",
+          "shell.execute_reply": "2024-08-22T12:25:46.751904Z",
+          "shell.execute_reply.started": "2024-08-22T12:25:38.813925Z"
+        },
+        "id": "wbvMlHd_QwMG",
+        "outputId": "e30e3eb6-3cbd-4c3d-a0db-4bc18b78c82d"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Ultralytics YOLOv8.1.9 🚀 Python-3.10.13 torch-2.2.0 CPU (Intel Core(TM) i5-3570 3.40GHz)\n",
+            "Setup complete ✅ (4 CPUs, 6.0 GB RAM, 82.4/327.3 GB disk)\n",
+            "Cargando otro módulos...\n",
+            "\n",
+            "\n",
+            " ====== Módulos cargados exitosamente =====\n"
+          ]
+        }
+      ],
+      "source": [
+        "print(\"Cargando Ultralytics...\")\n",
+        "import ultralytics\n",
+        "ultralytics.checks()\n",
+        "\n",
+        "import warnings as wrn\n",
+        "wrn.filterwarnings(\"ignore\")\n",
+        "\n",
+        "from ultralytics import YOLO\n",
+        "print(\"Cargando otro módulos...\")\n",
+        "import time as tm\n",
+        "import os as os\n",
+        "import platform as plt\n",
+        "import glob\n",
+        "\n",
+        "print('\\n\\n ====== Módulos cargados exitosamente =====')"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "vZ69mRS_zGc8",
+      "metadata": {
+        "id": "vZ69mRS_zGc8"
+      },
+      "source": [
+        "## 2. Configuración de la Inteligencia artificial\n",
+        "\n",
+        "La IA es un modelo que ya fue entrenado (paper no publicado) en células RCCD1. Se generaron unos 24 modelos diferentes y cada uno de ellos tiene distintas precisiones y velocidades.\n",
+        "\n",
+        "Para que el programa pueda detectar células, lo primero que debemos hacer es cargar los modelos preentrenados. Son archivos con la extensión \".pt\" y pueden ser muy grandes o no.\n",
+        "\n",
+        "La carpeta que contiene los modelos ya entrenados es: https://drive.google.com/drive/folders/1rhTGghD1zBCUt6u1uMubUanV6a9FAiwI?usp=drive_link\n",
+        "\n",
+        "Una vez descargado alguno, se configura\n",
+        "\n",
+        "```\n",
+        "model_file = \"8l-640.pt\"\n",
+        "```"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "rvSuHnlLIivb",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 357
+        },
+        "execution": {
+          "iopub.execute_input": "2024-08-22T12:25:46.764825Z",
+          "iopub.status.busy": "2024-08-22T12:25:46.763826Z",
+          "iopub.status.idle": "2024-08-22T12:25:46.963217Z",
+          "shell.execute_reply": "2024-08-22T12:25:46.963217Z",
+          "shell.execute_reply.started": "2024-08-22T12:25:46.764825Z"
+        },
+        "id": "rvSuHnlLIivb",
+        "outputId": "f476a950-ed81-486d-b37b-f0d2fd6dc1f6"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "File size: 83.58 MB\n",
+            "Model summary: 365 layers, 43630611 parameters, 0 gradients\n",
+            "(365, 43630611, 0, 0.0)\n"
+          ]
+        }
+      ],
+      "source": [
+        "model_file = \"8l-640.pt\"\n",
+        "\n",
+        "# Get the size of a file in bytes\n",
+        "file_size_bytes = os.path.getsize(model_file)\n",
+        "\n",
+        "# Convert the size to megabytes\n",
+        "file_size_mb = file_size_bytes / (1024 * 1024)\n",
+        "\n",
+        "print(f\"File size: {file_size_mb:.2f} MB\")\n",
+        "\n",
+        "model = YOLO(f'{model_file}')\n",
+        "\n",
+        "print(model.info())"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "015a304f-3d6b-4d6d-aa84-fca277402306",
+      "metadata": {
+        "id": "015a304f-3d6b-4d6d-aa84-fca277402306"
+      },
+      "source": [
+        "## 3. Cargar las imágenes y configurar la detección\n",
+        "\n",
+        "### 3.1 Carpeta con imágenes\n",
+        "\n",
+        "Debemos buscar la carpeta donde se encuentran las imágenes que queremos analizar. Esta carpeta puede estar en cualquir arte, sin embargo, recomiendo, para simplificar, que corramos este programa en la carpeta superior a donde estàn las imágenes.\n",
+        "\n",
+        "```\n",
+        "# Ubicación de la carpeta con imágenes\n",
+        "image_directory = \"AZUL/fotos adhesion/\"\n",
+        "```\n",
+        "\n",
+        "La imágenes que puede leer estre programa son muchas, por ahora la tengo configurada en JPG, JPEG, BMP y PNG.\n",
+        "\n",
+        "### 3.2 Configuración de la detección\n",
+        "\n",
+        "Existen algunos parámetros que se pueden modificar para cambiar la calidad y performance de la IA. Estos parámetros pueden tener efectos en la velocidad y precisión de las detecciones. En general, si el modelo que tenemos entrenado es muy bueno, no deberíamos preocuparnos por esto. De todas las configuraciones, hay algunas que influyen muchísimo sobre los resultados:\n",
+        "\n",
+        "- confianza: sería el valor mínimo de probabilidad de acertar en una detección. Cualquier detección por debajo no va a ser considerado \"objeto\" de interés.\n",
+        "- IoU: es un poco más complicado de explicar pero está relacionado con cuánto se superponen las detecciones.\n",
+        "- Tamaño de imagen: está relacionado con la velocidad de detección, ya que está directamente implicada la calidad de la imagen. A mayor resolución más información, más datos, más precisión, más lento.\n",
+        "- Detecciones máximas: es la cantidad máxima de objetos que esperamos en la imagen. Van a quedar seleccionadas las más probables.\n",
+        "\n",
+        "```\n",
+        "# Configuracion\n",
+        "image_size = 640\n",
+        "confianza = 0.5\n",
+        "iou = 0.6\n",
+        "max_det = 600\n",
+        "```"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "81332737-02b4-4330-98c1-14e8ad91e1d6",
+      "metadata": {
+        "execution": {
+          "iopub.execute_input": "2024-08-22T12:25:46.966737Z",
+          "iopub.status.busy": "2024-08-22T12:25:46.966737Z",
+          "iopub.status.idle": "2024-08-22T12:25:48.431834Z",
+          "shell.execute_reply": "2024-08-22T12:25:48.430835Z",
+          "shell.execute_reply.started": "2024-08-22T12:25:46.966737Z"
+        },
+        "colab": {
+          "referenced_widgets": [
+            "7796baea20334dad80f1312253a0989a",
+            "7b9e5bb9a0f5468f8872bf82ab9755e8",
+            "391718b05b0b437aa51ab9f9c0953750",
+            "bcdb5bbed7b14c398c86fda03ac320ac"
+          ]
+        },
+        "id": "81332737-02b4-4330-98c1-14e8ad91e1d6",
+        "outputId": "d1c9a041-c703-4df5-bc26-825c1d04897c"
+      },
+      "outputs": [
+        {
+          "data": {
+            "application/vnd.jupyter.widget-view+json": {
+              "model_id": "7796baea20334dad80f1312253a0989a",
+              "version_major": 2,
+              "version_minor": 0
+            },
+            "text/plain": [
+              "IntSlider(value=640, description='Tamaño de imagen:', max=1024, min=80, step=80)"
+            ]
+          },
+          "metadata": {},
+          "output_type": "display_data"
+        },
+        {
+          "data": {
+            "application/vnd.jupyter.widget-view+json": {
+              "model_id": "7b9e5bb9a0f5468f8872bf82ab9755e8",
+              "version_major": 2,
+              "version_minor": 0
+            },
+            "text/plain": [
+              "FloatSlider(value=0.5, description='Confianza:', max=1.0, step=0.05)"
+            ]
+          },
+          "metadata": {},
+          "output_type": "display_data"
+        },
+        {
+          "data": {
+            "application/vnd.jupyter.widget-view+json": {
+              "model_id": "391718b05b0b437aa51ab9f9c0953750",
+              "version_major": 2,
+              "version_minor": 0
+            },
+            "text/plain": [
+              "FloatSlider(value=0.6, description='IoU:', max=1.0, step=0.05)"
+            ]
+          },
+          "metadata": {},
+          "output_type": "display_data"
+        },
+        {
+          "data": {
+            "application/vnd.jupyter.widget-view+json": {
+              "model_id": "bcdb5bbed7b14c398c86fda03ac320ac",
+              "version_major": 2,
+              "version_minor": 0
+            },
+            "text/plain": [
+              "IntSlider(value=399, description='Máx. detecciones:', max=2000, min=1, step=10)"
+            ]
+          },
+          "metadata": {},
+          "output_type": "display_data"
+        }
+      ],
+      "source": [
+        "# Ubicación de la carpeta con imágenes\n",
+        "image_directory = \"190724 ADHESION/\"\n",
+        "\n",
+        "\n",
+        "import ipywidgets as widgets\n",
+        "from IPython.display import display\n",
+        "\n",
+        "# Crear widgets deslizantes para image_size, confianza, iou y max_det\n",
+        "image_size_widget = widgets.IntSlider(value=640, min=80, max=1024, step=80, description='Tamaño de imagen:')\n",
+        "confianza_widget = widgets.FloatSlider(value=0.5, min=0, max=1, step=0.05, description='Confianza:')\n",
+        "iou_widget = widgets.FloatSlider(value=0.6, min=0, max=1, step=0.05, description='IoU:')\n",
+        "max_det_widget = widgets.IntSlider(value=399, min=1, max=2000, step=10, description='Máx. detecciones:')\n",
+        "\n",
+        "# Mostrar los widgets\n",
+        "display(image_size_widget)\n",
+        "display(confianza_widget)\n",
+        "display(iou_widget)\n",
+        "display(max_det_widget)\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "4de9446b-f4f3-4076-bbee-ca06de31f358",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 247
+        },
+        "execution": {
+          "iopub.execute_input": "2024-08-22T12:25:48.437198Z",
+          "iopub.status.busy": "2024-08-22T12:25:48.437198Z",
+          "iopub.status.idle": "2024-08-22T12:25:49.041537Z",
+          "shell.execute_reply": "2024-08-22T12:25:49.039534Z",
+          "shell.execute_reply.started": "2024-08-22T12:25:48.437198Z"
+        },
+        "id": "4de9446b-f4f3-4076-bbee-ca06de31f358",
+        "outputId": "1efc7b45-e357-4b18-8d4e-d5617610cde9"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Cantidad de imagenes en el directorio 190724 ADHESION/: 48\n"
+          ]
+        }
+      ],
+      "source": [
+        "\n",
+        "\n",
+        "from pathlib import Path\n",
+        "\n",
+        "# Obtener los valores seleccionados\n",
+        "image_size = image_size_widget.value\n",
+        "confianza = confianza_widget.value\n",
+        "iou = iou_widget.value\n",
+        "max_det = max_det_widget.value\n",
+        "\n",
+        "cuda_device = 'cpu' #'cpu'    # device to run on, i.e. cuda device=0 or device=0,1,2,3 or device=cpu\n",
+        "\n",
+        "line_thickness = 1\n",
+        "hide_labels = True\n",
+        "hide_conf = True\n",
+        "save_txt = True\n",
+        "save_conf = True\n",
+        "save_crop = False\n",
+        "\n",
+        "exts = [\".jpg\", \".jpeg\", \".bmp\", \".png\"]\n",
+        "\n",
+        "# Same directory\n",
+        "img_list = [p for p in Path(image_directory).iterdir() if p.suffix in exts]\n",
+        "\n",
+        "print(f\"Cantidad de imagenes en el directorio {image_directory}: {len(img_list)}\")\n",
+        "#print(f\"List of images: {img_list}\")\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "ddcad269-fbb9-4e13-b735-a6aaa9151d40",
+      "metadata": {
+        "id": "ddcad269-fbb9-4e13-b735-a6aaa9151d40"
+      },
+      "source": [
+        "## 4. Ejecutar la IA"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "89db7934-09cd-48ca-b48d-20332bcfc12a",
+      "metadata": {
+        "execution": {
+          "iopub.execute_input": "2024-08-22T12:25:49.044844Z",
+          "iopub.status.busy": "2024-08-22T12:25:49.044844Z",
+          "iopub.status.idle": "2024-08-22T12:26:46.734910Z",
+          "shell.execute_reply": "2024-08-22T12:26:46.734910Z",
+          "shell.execute_reply.started": "2024-08-22T12:25:49.044844Z"
+        },
+        "id": "89db7934-09cd-48ca-b48d-20332bcfc12a",
+        "outputId": "1dbc29fd-8bf7-45ed-d10d-d3ab45c29655"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Comenzar detección en 190724 ADHESION/\n",
+            "\n",
+            "image 1/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P1A.bmp: 480x640 79 Cells, 1198.5ms\n",
+            "image 2/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P1B.bmp: 480x640 97 Cells, 957.0ms\n",
+            "image 3/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P1C.bmp: 480x640 74 Cells, 951.6ms\n",
+            "image 4/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P1D.bmp: 480x640 115 Cells, 965.0ms\n",
+            "image 5/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P1E.bmp: 480x640 184 Cells, 952.1ms\n",
+            "image 6/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P1F.bmp: 480x640 220 Cells, 952.4ms\n",
+            "image 7/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P2A.bmp: 480x640 136 Cells, 970.3ms\n",
+            "image 8/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P2B.bmp: 480x640 147 Cells, 1004.9ms\n",
+            "image 9/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P2C.bmp: 480x640 135 Cells, 962.2ms\n",
+            "image 10/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P2D.bmp: 480x640 122 Cells, 960.8ms\n",
+            "image 11/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P2E.bmp: 480x640 64 Cells, 954.6ms\n",
+            "image 12/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P2F.bmp: 480x640 68 Cells, 953.4ms\n",
+            "image 13/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P3A.bmp: 480x640 107 Cells, 961.8ms\n",
+            "image 14/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P3B.bmp: 480x640 99 Cells, 962.1ms\n",
+            "image 15/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P3C.bmp: 480x640 109 Cells, 955.9ms\n",
+            "image 16/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P3D.bmp: 480x640 112 Cells, 979.8ms\n",
+            "image 17/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P3E.bmp: 480x640 102 Cells, 1002.7ms\n",
+            "image 18/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P3F.bmp: 480x640 106 Cells, 964.2ms\n",
+            "image 19/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P4A.bmp: 480x640 180 Cells, 955.9ms\n",
+            "image 20/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P4B.bmp: 480x640 188 Cells, 976.7ms\n",
+            "image 21/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P4C.bmp: 480x640 170 Cells, 958.6ms\n",
+            "image 22/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P4D.bmp: 480x640 183 Cells, 974.0ms\n",
+            "image 23/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P4E.bmp: 480x640 98 Cells, 953.5ms\n",
+            "image 24/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P4F.bmp: 480x640 163 Cells, 959.0ms\n",
+            "image 25/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P5A.bmp: 480x640 115 Cells, 962.2ms\n",
+            "image 26/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P5B.bmp: 480x640 170 Cells, 1000.0ms\n",
+            "image 27/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P5C.bmp: 480x640 148 Cells, 950.5ms\n",
+            "image 28/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P5D.bmp: 480x640 111 Cells, 957.3ms\n",
+            "image 29/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P5E.bmp: 480x640 116 Cells, 947.5ms\n",
+            "image 30/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P5F.bmp: 480x640 132 Cells, 990.7ms\n",
+            "image 31/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P6A.bmp: 480x640 107 Cells, 979.8ms\n",
+            "image 32/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P6B.bmp: 480x640 103 Cells, 950.6ms\n",
+            "image 33/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P6C.bmp: 480x640 174 Cells, 951.7ms\n",
+            "image 34/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P6D.bmp: 480x640 118 Cells, 972.9ms\n",
+            "image 35/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P6E.bmp: 480x640 99 Cells, 983.3ms\n",
+            "image 36/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P6F.bmp: 480x640 136 Cells, 959.0ms\n",
+            "image 37/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P7A.bmp: 480x640 121 Cells, 954.7ms\n",
+            "image 38/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P7B.bmp: 480x640 117 Cells, 962.0ms\n",
+            "image 39/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P7C.bmp: 480x640 112 Cells, 952.1ms\n",
+            "image 40/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P7D.bmp: 480x640 112 Cells, 950.6ms\n",
+            "image 41/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P7E.bmp: 480x640 111 Cells, 964.1ms\n",
+            "image 42/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P7F.bmp: 480x640 105 Cells, 953.8ms\n",
+            "image 43/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P8A.bmp: 480x640 114 Cells, 981.7ms\n",
+            "image 44/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P8B.bmp: 480x640 103 Cells, 1063.6ms\n",
+            "image 45/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P8C.bmp: 480x640 96 Cells, 986.1ms\n",
+            "image 46/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P8D.bmp: 480x640 112 Cells, 961.4ms\n",
+            "image 47/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P8E.bmp: 480x640 99 Cells, 951.7ms\n",
+            "image 48/48 C:\\Users\\poros\\Documents\\Deteccion por IA\\190724 ADHESION\\P8F.bmp: 480x640 90 Cells, 974.6ms\n",
+            "Speed: 3.7ms preprocess, 971.9ms inference, 0.7ms postprocess per image at shape (1, 3, 480, 640)\n",
+            "Results saved to \u001b[1mruns\\detect\\predict5\u001b[0m\n",
+            "48 labels saved to runs\\detect\\predict5\\labels\n",
+            "Tiempo de detección: 57.00 segundos\n"
+          ]
+        }
+      ],
+      "source": [
+        "print(f\"Comenzar detección en {image_directory}\")\n",
+        "\n",
+        "import time\n",
+        "\n",
+        "start = time.time()\n",
+        "\n",
+        "results = model.predict(\n",
+        "    imgsz=image_size,\n",
+        "    device=cuda_device,\n",
+        "    source=image_directory,\n",
+        "    max_det=max_det,\n",
+        "    save=True,\n",
+        "    save_txt=save_txt,\n",
+        "    save_conf=save_conf,\n",
+        "    conf=confianza,\n",
+        "    iou=iou,\n",
+        ")\n",
+        "\n",
+        "end = time.time()\n",
+        "\n",
+        "# Calcular la diferencia de tiempo en segundos\n",
+        "elapsed_seconds = end - start\n",
+        "\n",
+        "# Convertir la diferencia de tiempo a minutos, horas u otras unidades según sea necesario\n",
+        "if elapsed_seconds < 60:\n",
+        "    print(f\"Tiempo de detección: {elapsed_seconds:.2f} segundos\")\n",
+        "elif elapsed_seconds < 3600:\n",
+        "    elapsed_minutes = elapsed_seconds / 60\n",
+        "    print(f\"Tiempo de detección: {elapsed_minutes:.2f} minutos\")\n",
+        "else:\n",
+        "    elapsed_hours = elapsed_seconds / 3600\n",
+        "    print(f\"Tiempo de detección: {elapsed_hours:.2f} horas\")"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "b2924f02-3dce-45db-90fe-97583959c08e",
+      "metadata": {
+        "id": "b2924f02-3dce-45db-90fe-97583959c08e"
+      },
+      "source": [
+        "## 5. Análisis de los resultados\n",
+        "\n",
+        "Los resultados se pueden visualizar o guardar de diferentes formas o formatos. La forma de datos duros, en formato de tabla o planilla de cálulo es la mejor manera de cuantificar el conteo. Sin embargo, cuando estamos probando nuevas configuraciones o nuevas imágenes, tal vez esté bueno mirar las detecciones marcadas en las imágenes de microscopía. Pensemos que es como en ImageJ, donde hacíamos \"click click click\" y quedaban marcadas las células.\n",
+        "\n",
+        "### Planilla con resultados\n",
+        "\n",
+        "Nos va a servir para guardar los conteos. Debemos configurar el nombre del archivo de CSV con el que queremos guardarlo.\n",
+        "\n",
+        "```\n",
+        "output_csv = \"detecciones_AZUL.csv\"\n",
+        "```\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "4a5dbe78-4465-4ae4-b7e7-18e3d0a6c725",
+      "metadata": {
+        "execution": {
+          "iopub.execute_input": "2024-08-22T12:26:46.742947Z",
+          "iopub.status.busy": "2024-08-22T12:26:46.738538Z",
+          "iopub.status.idle": "2024-08-22T12:26:46.830861Z",
+          "shell.execute_reply": "2024-08-22T12:26:46.830861Z",
+          "shell.execute_reply.started": "2024-08-22T12:26:46.742947Z"
+        },
+        "id": "4a5dbe78-4465-4ae4-b7e7-18e3d0a6c725",
+        "outputId": "22378759-5d6b-4e38-dd79-2dd07d2eaba4"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Detecciones guardadas en el archivo: 190724 ADHESION/conteo.csv\n"
+          ]
+        }
+      ],
+      "source": [
+        "output_csv = \"190724 ADHESION/conteo.csv\"\n",
+        "\n",
+        "\n",
+        "import pandas as pd\n",
+        "\n",
+        "# Lista para almacenar los DataFrames de cada resultado\n",
+        "dataframes = []\n",
+        "\n",
+        "# Iterar sobre cada elemento de la lista results\n",
+        "for result_index, result in enumerate(results):\n",
+        "    # Acceder al atributo 'data' dentro de 'boxes'\n",
+        "    boxes_data = result.boxes.data\n",
+        "\n",
+        "    # Supongamos que boxes_data es el tensor que deseas convertir en una lista\n",
+        "    boxes_data_list = boxes_data.tolist()\n",
+        "\n",
+        "    # Crear un DataFrame de pandas para el resultado actual\n",
+        "    df = pd.DataFrame({\n",
+        "        'Carpeta': [result.path],  # Agregar la ruta de la carpeta\n",
+        "        'Archivos de imagen': [result.path.split('\\\\')[-1]],  # Agregar el nombre del archivo de imagen\n",
+        "        'Dimensiones de la imagen': [result.orig_shape],  # Agregar las dimensiones de la imagen\n",
+        "        'Cantidad de células': [len(boxes_data)],  # Agregar la cantidad de células\n",
+        "        'Modelo de detección': [model_file]  # Agregar el nombre del modelo de detección\n",
+        "    })\n",
+        "\n",
+        "    # Agregar el DataFrame actual a la lista de DataFrames\n",
+        "    dataframes.append(df)\n",
+        "\n",
+        "# Concatenar todos los DataFrames en uno solo\n",
+        "final_df = pd.concat(dataframes, ignore_index=True)\n",
+        "\n",
+        "# Imprimir el DataFrame final\n",
+        "final_df\n",
+        "\n",
+        "final_df.to_csv(output_csv, index=False)\n",
+        "\n",
+        "print(\"Detecciones guardadas en el archivo:\", output_csv)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "id": "dde55536-ff47-407d-b9ea-7d62bb485248",
+      "metadata": {
+        "id": "dde55536-ff47-407d-b9ea-7d62bb485248"
+      },
+      "source": [
+        "## 6. Guardado de imágenes anotadas\n",
+        "\n",
+        "Aunque no es estrictamente necesario, podemos guardas las imágenes con las marquitas de las detecciones y el conteo. Nos permite hacer una evaluación rápida de la calidad del modelo o verificar si todo está bien.\n",
+        "\n",
+        "```\n",
+        "# Crear la carpeta para guardar las imágenes anotadas\n",
+        "output_folder = \"AZU anotadas 2\"\n",
+        "```"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "925a060d-31cd-48de-b020-4f57da7c7178",
+      "metadata": {
+        "execution": {
+          "iopub.execute_input": "2024-08-22T12:26:46.832427Z",
+          "iopub.status.busy": "2024-08-22T12:26:46.832427Z",
+          "iopub.status.idle": "2024-08-22T12:26:53.874570Z",
+          "shell.execute_reply": "2024-08-22T12:26:53.873295Z",
+          "shell.execute_reply.started": "2024-08-22T12:26:46.832427Z"
+        },
+        "id": "925a060d-31cd-48de-b020-4f57da7c7178",
+        "outputId": "8c3bb2c7-e185-4e38-df7e-68254315e348"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Imagen anotadas guardada en: 190724 CONTROL-TGN020 azu/\n"
+          ]
+        }
+      ],
+      "source": [
+        "import cv2\n",
+        "import os\n",
+        "\n",
+        "# Crear la carpeta para guardar las imágenes anotadas\n",
+        "output_folder = \"190724 CONTROL-TGN020 azu/\"\n",
+        "os.makedirs(output_folder, exist_ok=True)\n",
+        "\n",
+        "# Iterar sobre cada resultado en la lista results\n",
+        "for idx, result in enumerate(results):\n",
+        "    # Leer la imagen original\n",
+        "    image = cv2.imread(result.path)\n",
+        "\n",
+        "    original_name = result.path.split('\\\\')[-1]\n",
+        "\n",
+        "    cell_count = 0\n",
+        "\n",
+        "    # Iterar sobre las detecciones en boxes.data\n",
+        "    for detection in result.boxes.data.tolist():\n",
+        "        # Obtener las coordenadas de la detección\n",
+        "        x_min, y_min, x_max, y_max, confidence, class_id = detection[:6]\n",
+        "        x, y = int((x_min + x_max) / 2), int((y_min + y_max) / 2)  # Calcular el punto medio\n",
+        "\n",
+        "        # Dibujar un punto en la coordenada (x, y)\n",
+        "        cv2.circle(image, (x, y), 4, (0, 255, 0), -1)  # Punto verde\n",
+        "\n",
+        "        # Agregar el contador al lado del punto\n",
+        "        cell_count += 1\n",
+        "        cv2.putText(image, str(cell_count), (x + 3, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)\n",
+        "\n",
+        "    # Agregar el texto con el conteo total de detecciones\n",
+        "    cv2.putText(image, f\"Total de celulas: {len(result.boxes.data)}\", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "    # Guardar la imagen anotada en la carpeta de salida\n",
+        "    output_path = os.path.join(output_folder, f\"{original_name}_pred.jpg\")\n",
+        "    cv2.imwrite(output_path, image)\n",
+        "\n",
+        "\n",
+        "print(f\"Imagen anotadas guardada en: {output_folder}\")\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "id": "b51dbb28-8381-4826-b061-43a1c0cf3cde",
+      "metadata": {
+        "id": "b51dbb28-8381-4826-b061-43a1c0cf3cde"
+      },
+      "outputs": [],
+      "source": []
+    }
+  ],
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "display_name": "Python 3 (ipykernel)",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.10.13"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
